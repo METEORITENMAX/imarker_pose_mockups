@@ -1,0 +1,21 @@
+# NOTE: This is the executable name
+interactive_marker_node_goal:
+  ros__parameters:
+    box_color:
+      a: 1.0
+      b: 0.0
+      g: 0.0
+      r: 1.0
+    box_scale:
+      x: 0.1
+      y: 0.1
+      z: 0.1
+    frame_id: map
+    initial_pose:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    marker_description: "imarker_pose_mockups - Example 01 - Goal"
+    marker_name: goal
+    marker_type: 1
+    use_sim_time: false

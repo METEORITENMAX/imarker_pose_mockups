@@ -1,0 +1,35 @@
+# NOTE: This is the executable name
+interactive_marker_node_start:
+  ros__parameters:
+    # frame_id: "map"
+    # marker_name: "start_marker"
+    # marker_description: "imarker_pose_mockups - Example 01 - Start"
+    # marker_type: 1
+    # initial_pose_x: 1.0
+    # initial_pose_y: 1.0
+    # initial_pose_z: 1.0
+    # box_scale_x: 0.2
+    # box_scale_y: 0.2
+    # box_scale_z: 0.2
+    # box_color_r: 0.0
+    # box_color_g: 0.0
+    # box_color_b: 1.0
+    # box_color_a: 1.0
+    box_color:
+      a: 1.0
+      b: 1.0
+      g: 0.0
+      r: 0.0
+    box_scale:
+      x: 0.1
+      y: 0.1
+      z: 0.1
+    frame_id: map
+    initial_pose:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    marker_description: "imarker_pose_mockups - Example 01 - Start"
+    marker_name: start
+    marker_type: 2
+    use_sim_time: false

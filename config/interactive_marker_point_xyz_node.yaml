@@ -1,0 +1,15 @@
+my_interactive_marker:
+  ros__parameters:
+    frame_id: "map"
+    marker_name: "custom_marker"
+    marker_description: "Custom 3-DOF Control"
+    initial_pose_x: 1.0
+    initial_pose_y: 1.0
+    initial_pose_z: 1.0
+    box_scale_x: 0.2
+    box_scale_y: 0.2
+    box_scale_z: 0.2
+    box_color_r: 1.0
+    box_color_g: 0.0
+    box_color_b: 0.0
+    box_color_a: 1.0
