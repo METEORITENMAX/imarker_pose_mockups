@@ -7,6 +7,8 @@ from visualization_msgs.msg import InteractiveMarkerFeedback
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Pose
 
+from visualization_msgs.msg import MarkerArray
+
 class InteractiveMarkerPointXYZNode(Node):
 
 
@@ -117,7 +119,7 @@ class InteractiveMarkerPointXYZNode(Node):
         self.marker.pose.position.z = self.initial_pose_z
 
         
-        self.marker.scale = 1.0
+        self.marker.scale = 1.5
 
 
         # Set the initial pose of the marker
@@ -149,19 +151,62 @@ class InteractiveMarkerPointXYZNode(Node):
         
 
         # Create move controls for X, Y, and Z axes
-        # self.add_move_control("move_x", 1.0, 0.0, 0.0, 0.0, InteractiveMarkerControl.MOVE_AXIS)
-        # self.add_move_control("move_y", 0.0, 1.0, 0.0, 0.0, InteractiveMarkerControl.MOVE_AXIS)
-        # self.add_move_control("move_z", 0.0, 0.0, 1.0, 0.0, InteractiveMarkerControl.MOVE_AXIS)
+        self.add_move_control("move_x", 1.0, 1.0, 0.0, 0.0, InteractiveMarkerControl.MOVE_AXIS)
+        self.add_move_control("move_y", 1.0, 0.0, 1.0, 0.0, InteractiveMarkerControl.MOVE_AXIS)
+        self.add_move_control("move_z", 1.0, 0.0, 0.0, 1.0, InteractiveMarkerControl.MOVE_AXIS)
         
+        # Create rotate controls for X, Y, and Z axes
+        self.add_move_control("rotate_x", 1.0, 1.0, 0.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
+        self.add_move_control("rotate_y", 1.0, 0.0, 1.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
+        self.add_move_control("rotate_z", 1.0, 0.0, 0.0, 1.0, InteractiveMarkerControl.ROTATE_AXIS)
 
         # self.server.insert(self.marker, self.process_feedback)
         # self.server.insert(self.marker)
         # feedback_callback=processFeedback
         self.server.insert(self.marker, feedback_callback=self.process_feedback)
         self.server.applyChanges()
+        # Subscription to MarkerArray topic
+        self.marker_array_sub = self.create_subscription(MarkerArray, '/astar/example/octomapViz', self.marker_array_callback, 10)
+
+        self.create_subscription(Pose, '/update_marker_pose/'+self.marker_name, self.update_marker_pose_callback, 10)
 
         self.get_logger().info('[Setup] End')
 
+    def marker_array_callback(self, marker_array: MarkerArray):
+        self.marker_array = marker_array
+
+    def update_marker_pose_callback(self, msg: Pose):
+        if not self.marker_array:
+            self.get_logger().warn('No marker array received yet.')
+            return
+
+        closest_marker = self.find_closest_marker(self.marker_array, msg)
+        if closest_marker:
+            self.marker.pose = closest_marker.pose
+            self.server.insert(self.marker, feedback_callback=self.process_feedback)
+            self.server.applyChanges()
+            self.get_logger().info(f'Updated closest marker pose: {msg}')
+            # Call process_feedback directly
+            feedback = InteractiveMarkerFeedback()
+            feedback.marker_name = self.marker_name
+            feedback.event_type = InteractiveMarkerFeedback.POSE_UPDATE
+            feedback.pose = self.marker.pose
+            self.process_feedback(feedback)
+
+    def find_closest_marker(self, marker_array: MarkerArray, pose: Pose):
+        closest_marker = None
+        closest_distance = float('inf')
+
+        for marker in marker_array.markers:
+            distance = ((marker.pose.position.x - pose.position.x) ** 2 +
+                        (marker.pose.position.y - pose.position.y) ** 2 +
+                        (marker.pose.position.z - pose.position.z) ** 2) ** 0.5
+
+            if distance < closest_distance:
+                closest_distance = distance
+                closest_marker = marker
+
+        return closest_marker
 
 
 def main(args=None):
