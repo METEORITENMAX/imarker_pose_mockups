@@ -6,7 +6,7 @@ from visualization_msgs.msg import InteractiveMarker, InteractiveMarkerControl, 
 from visualization_msgs.msg import InteractiveMarkerFeedback
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Pose
-
+import math
 from visualization_msgs.msg import MarkerArray
 
 class InteractiveMarkerPointXYZNode(Node):
@@ -156,9 +156,9 @@ class InteractiveMarkerPointXYZNode(Node):
         self.add_move_control("move_z", 1.0, 0.0, 0.0, 1.0, InteractiveMarkerControl.MOVE_AXIS)
         
         # Create rotate controls for X, Y, and Z axes
-        self.add_move_control("rotate_x", 1.0, 1.0, 0.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
-        self.add_move_control("rotate_y", 1.0, 0.0, 1.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
-        self.add_move_control("rotate_z", 1.0, 0.0, 0.0, 1.0, InteractiveMarkerControl.ROTATE_AXIS)
+        # self.add_move_control("rotate_x", 1.0, 1.0, 0.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
+        # self.add_move_control("rotate_y", 1.0, 0.0, 1.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
+        # self.add_move_control("rotate_z", 1.0, 0.0, 0.0, 1.0, InteractiveMarkerControl.ROTATE_AXIS)
 
         # self.server.insert(self.marker, self.process_feedback)
         # self.server.insert(self.marker)
@@ -169,7 +169,7 @@ class InteractiveMarkerPointXYZNode(Node):
         self.marker_array_sub = self.create_subscription(MarkerArray, '/astar/example/octomapViz', self.marker_array_callback, 10)
 
         self.create_subscription(Pose, '/update_marker_pose/'+self.marker_name, self.update_marker_pose_callback, 10)
-
+        self.marker_array = []
         self.get_logger().info('[Setup] End')
 
     def marker_array_callback(self, marker_array: MarkerArray):
@@ -185,26 +185,40 @@ class InteractiveMarkerPointXYZNode(Node):
             self.marker.pose = closest_marker.pose
             self.server.insert(self.marker, feedback_callback=self.process_feedback)
             self.server.applyChanges()
-            self.get_logger().info(f'Updated closest marker pose: {msg}')
+            # self.get_logger().info(f'Updated closest marker pose: {msg}')
             # Call process_feedback directly
             feedback = InteractiveMarkerFeedback()
             feedback.marker_name = self.marker_name
             feedback.event_type = InteractiveMarkerFeedback.POSE_UPDATE
             feedback.pose = self.marker.pose
             self.process_feedback(feedback)
+        else:
+            self.get_logger().warn('No closest marker found.')
 
     def find_closest_marker(self, marker_array: MarkerArray, pose: Pose):
         closest_marker = None
         closest_distance = float('inf')
 
+        # Start from the initial z position of the pose
+        current_z = pose.position.z
+        #self.get_logger().info(f'Pose position: x={pose.position.x}, y={pose.position.y}, z={pose.position.z}, orientation=({pose.orientation.x}, {pose.orientation.y}, {pose.orientation.z}, {pose.orientation.w})')
         for marker in marker_array.markers:
-            distance = ((marker.pose.position.x - pose.position.x) ** 2 +
-                        (marker.pose.position.y - pose.position.y) ** 2 +
-                        (marker.pose.position.z - pose.position.z) ** 2) ** 0.5
+        # Check if the marker is below the given pose
+            if marker.color.r > 0:
+                continue
+            if marker.pose.position.z < pose.position.z:
+                distance = math.sqrt(
+                (marker.pose.position.x - pose.position.x) ** 2 +
+                (marker.pose.position.y - pose.position.y) ** 2 +
+                (marker.pose.position.z - pose.position.z) ** 2
+            )
+                if distance < closest_distance:
+                    closest_distance = distance
+                    closest_marker = marker
 
-            if distance < closest_distance:
-                closest_distance = distance
-                closest_marker = marker
+            # if closest_marker:
+            #     break  # Stop if a marker directly below is found
+
 
         return closest_marker
 
