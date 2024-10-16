@@ -51,7 +51,6 @@ class InteractiveMarkerPointXYZNode(Node):
         self.get_logger().info('Feedback from marker: {}'.format(feedback.marker_name))
 
         if feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
-            
             __msg__pose3d = Pose()
 
             __msg__pose3d.position.x = feedback.pose.position.x
@@ -93,38 +92,26 @@ class InteractiveMarkerPointXYZNode(Node):
 
         self.set_parameters()
 
-
         ## TODO: Replace with parameter
         self.flag_useTimer = False
         self.__topic__pose3d = self.get_name()+"/out/pose3d/"+self.marker_name
 
         self.__pub__pose3d = self.create_publisher(Pose, self.__topic__pose3d, 10)
 
-        ## TODO: Print parameters
-
-
         # Setup interactive marker server
         self.server = InteractiveMarkerServer(self, 'interactive_marker_server'+'_'+self.marker_name)
-
-        
 
         self.marker = InteractiveMarker()
         self.marker.header.frame_id = self.frame_id
         self.marker.name = self.marker_name
         self.marker.description = self.marker_description
-
-
         self.marker.pose.position.x = self.initial_pose_x
         self.marker.pose.position.y = self.initial_pose_y
         self.marker.pose.position.z = self.initial_pose_z
-
-        
         self.marker.scale = 1.5
-
 
         # Set the initial pose of the marker
         self.marker.pose.position = Point(x=self.initial_pose_x, y=self.initial_pose_y, z=self.initial_pose_z)
-        
 
         # Create a box marker
         box_marker = Marker()
@@ -136,7 +123,6 @@ class InteractiveMarkerPointXYZNode(Node):
         box_marker.color.g = self.box_color_g
         box_marker.color.b = self.box_color_b
         box_marker.color.a = self.box_color_a
-        
 
         # Create a control that contains the box
         box_control = InteractiveMarkerControl()
@@ -148,21 +134,13 @@ class InteractiveMarkerPointXYZNode(Node):
 
         box_control.markers.append(box_marker)
         self.marker.controls.append(box_control)
-        
 
         # Create move controls for X, Y, and Z axes
         self.add_move_control("move_x", 1.0, 1.0, 0.0, 0.0, InteractiveMarkerControl.MOVE_AXIS)
         self.add_move_control("move_y", 1.0, 0.0, 1.0, 0.0, InteractiveMarkerControl.MOVE_AXIS)
         self.add_move_control("move_z", 1.0, 0.0, 0.0, 1.0, InteractiveMarkerControl.MOVE_AXIS)
-        
-        # Create rotate controls for X, Y, and Z axes
-        # self.add_move_control("rotate_x", 1.0, 1.0, 0.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
-        # self.add_move_control("rotate_y", 1.0, 0.0, 1.0, 0.0, InteractiveMarkerControl.ROTATE_AXIS)
-        # self.add_move_control("rotate_z", 1.0, 0.0, 0.0, 1.0, InteractiveMarkerControl.ROTATE_AXIS)
 
-        # self.server.insert(self.marker, self.process_feedback)
-        # self.server.insert(self.marker)
-        # feedback_callback=processFeedback
+
         self.server.insert(self.marker, feedback_callback=self.process_feedback)
         self.server.applyChanges()
         # Subscription to MarkerArray topic
@@ -176,62 +154,33 @@ class InteractiveMarkerPointXYZNode(Node):
         self.marker_array = marker_array
 
     def update_marker_pose_callback(self, msg: Pose):
-        if not self.marker_array:
-            self.get_logger().warn('No marker array received yet.')
+        if not msg:
+            self.get_logger().warn('No Pose received.')
             return
 
-        closest_marker = self.find_closest_marker(self.marker_array, msg)
-        if closest_marker:
-            self.marker.pose = closest_marker.pose
-            self.server.insert(self.marker, feedback_callback=self.process_feedback)
-            self.server.applyChanges()
-            # self.get_logger().info(f'Updated closest marker pose: {msg}')
-            # Call process_feedback directly
-            feedback = InteractiveMarkerFeedback()
-            feedback.marker_name = self.marker_name
-            feedback.event_type = InteractiveMarkerFeedback.POSE_UPDATE
-            feedback.pose = self.marker.pose
-            self.process_feedback(feedback)
-        else:
-            self.get_logger().warn('No closest marker found.')
+        self.get_logger().info(f'Received message: {msg}')
 
-    def find_closest_marker(self, marker_array: MarkerArray, pose: Pose):
-        closest_marker = None
-        closest_distance = float('inf')
+        self.marker.pose = msg
+        self.server.insert(self.marker, feedback_callback=self.process_feedback)
+        self.server.applyChanges()
 
-        # Start from the initial z position of the pose
-        current_z = pose.position.z
-        #self.get_logger().info(f'Pose position: x={pose.position.x}, y={pose.position.y}, z={pose.position.z}, orientation=({pose.orientation.x}, {pose.orientation.y}, {pose.orientation.z}, {pose.orientation.w})')
-        for marker in marker_array.markers:
-        # Check if the marker is below the given pose
-            if marker.color.r > 0:
-                continue
-            if marker.pose.position.z < pose.position.z:
-                distance = math.sqrt(
-                (marker.pose.position.x - pose.position.x) ** 2 +
-                (marker.pose.position.y - pose.position.y) ** 2 +
-                (marker.pose.position.z - pose.position.z) ** 2
-            )
-                if distance < closest_distance:
-                    closest_distance = distance
-                    closest_marker = marker
-
-            # if closest_marker:
-            #     break  # Stop if a marker directly below is found
-
-
-        return closest_marker
+        feedback = InteractiveMarkerFeedback()
+        feedback.marker_name = self.marker_name
+        feedback.event_type = InteractiveMarkerFeedback.POSE_UPDATE
+        feedback.pose = self.marker.pose
+        self.process_feedback(feedback)
+        self.get_logger().warn('Marker Updated.')
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = InteractiveMarkerPointXYZNode()
-    
+
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    
+
     node.destroy_node()
     rclpy.shutdown()
 
